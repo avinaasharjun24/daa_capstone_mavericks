@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body class="container mt-5">
+    <h2 class="text-center">Smart Parking System</h2>
+    
+    <div class="mb-3">
+        <input type="text" id="vehicleNumber" class="form-control" placeholder="Enter Vehicle Number">
+        <button class="btn btn-success mt-2" onclick="parkVehicle()">Park Vehicle</button>
+    </div>
+
+    <h4>Parking Slots</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Slot ID</th>
+                <th>Vehicle Number</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="parkingSlots"></tbody>
+    </table>
+
+    <h4>Waiting Queue</h4>
+    <ul id="waitingQueue" class="list-group"></ul>
+
+    <script>
+        function fetchParkingStatus() {
+            fetch('/get_parking_status')
+            .then(response => response.json())
+            .then(data => {
+                let parkingSlots = document.getElementById('parkingSlots');
+                parkingSlots.innerHTML = '';
+
+                data.slots.forEach(slot => {
+                    let row = `<tr>
+                        <td>${slot[0]}</td>
+                        <td>${slot[1] || 'Empty'}</td>
+                        <td>${slot[2]}</td>
+                        <td>${slot[1] ? `<button class="btn btn-danger" onclick="removeVehicle('${slot[1]}')">Remove</button>` : ''}</td>
+                    </tr>`;
+                    parkingSlots.innerHTML += row;
+                });
+
+                let waitingQueue = document.getElementById('waitingQueue');
+                waitingQueue.innerHTML = '';
+                data.queue.forEach(vehicle => {
+                    waitingQueue.innerHTML += `<li class="list-group-item">${vehicle}</li>`;
+                });
+            });
+        }
+
+        function parkVehicle() {
+            let vehicleNumber = document.getElementById('vehicleNumber').value;
+            if (!vehicleNumber) return alert("Enter a vehicle number!");
+
+            fetch('/park_vehicle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({vehicle_number: vehicleNumber})
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchParkingStatus();
+            });
+        }
+
+        function removeVehicle(vehicleNumber) {
+            fetch('/remove_vehicle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({vehicle_number: vehicleNumber})
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchParkingStatus();
+            });
+        }
+
+        fetchParkingStatus();
+        setInterval(fetchParkingStatus, 3000);
+    </script>
+</body>
+</html>
